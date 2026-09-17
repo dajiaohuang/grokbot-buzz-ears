@@ -1,6 +1,6 @@
 import { getPublicKey, nip19 } from "nostr-tools";
 import type { Event, Filter } from "nostr-tools";
-import { join, isAbsolute } from "node:path";
+import { join, isAbsolute, posix } from "node:path";
 
 export const DEFAULT_WEBHOOK_TIMEOUT_MS = 8000;
 export const DEFAULT_REDISCOVERY_INTERVAL_MS = 60_000;
@@ -95,7 +95,13 @@ export function resolveKeyFile(
   credentialsDirectory?: string,
 ): string {
   if (isAbsolute(file)) return file;
-  if (credentialsDirectory) return join(credentialsDirectory, file);
+  if (credentialsDirectory) {
+    // systemd's CREDENTIALS_DIRECTORY is always a POSIX path, even when a
+    // test or cross-platform caller evaluates this helper on Windows.
+    return credentialsDirectory.startsWith("/")
+      ? posix.join(credentialsDirectory, file)
+      : join(credentialsDirectory, file);
+  }
   return file;
 }
 
